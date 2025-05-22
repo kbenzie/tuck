@@ -5,6 +5,7 @@ import (
 	"os"
 	"tuck/cmd/install"
 	"tuck/cmd/remove"
+	"tuck/internal/log"
 )
 
 var rootCmd = &cobra.Command{
@@ -25,6 +26,8 @@ func init() {
 }
 
 func Execute() {
+	// TODO: add verbosity flag
+	log.SetLevel(log.LevelDebug)
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)

@@ -2,6 +2,7 @@ package install
 
 import (
 	"github.com/spf13/cobra"
+	"tuck/internal/log"
 )
 
 var InstallCmd = &cobra.Command{
@@ -11,9 +12,12 @@ var InstallCmd = &cobra.Command{
 	Long: `Install a package with a local path or from a GitHub release
 with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		println("package:", args[0])
-		println("prefix:", prefix)
-		println("version:", version)
+		var pkg string = args[0]
+		log.Info("package:", pkg)
+		log.Info("prefix:", prefix)
+		log.Info("version:", version)
+
+		// TODO: get latest release from github api
 	},
 }
 
