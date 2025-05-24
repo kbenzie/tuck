@@ -9,7 +9,7 @@ import (
 
 var params struct {
 	Prefix  string
-	Tag     string
+	Release string
 	Local   bool
 	Package string
 }
@@ -28,7 +28,7 @@ with a project slug or URL.`,
 				log.Fatalln("local path does not exist:", params.Package)
 			}
 		} else {
-			// TODO: download
+			// TODO: download = github.DownloadRelease(params.Package, params.Release)
 			// TODO: extract
 		}
 		// TODO: stow
@@ -39,8 +39,8 @@ func init() {
 	InstallCmd.Aliases = append(InstallCmd.Aliases, "in")
 	InstallCmd.Flags().StringVarP(&params.Prefix, "prefix", "p",
 		"~/.local", "install prefix path")
-	InstallCmd.Flags().StringVarP(&params.Tag, "tag", "t",
-		"latest", "release tag to install")
+	InstallCmd.Flags().StringVarP(&params.Release, "release", "r",
+		"latest", "github release to install")
 	InstallCmd.Flags().BoolVarP(&params.Local, "local", "l", false,
 		"treat package as local path")
 }

@@ -91,5 +91,5 @@ func SetLevel(level LogLevel) {
 
 func init() {
 	SetOutput(os.Stderr, 0)
-	SetLevel(LevelInfo)
+	SetLevel(LevelWarn)
 }
