@@ -1,8 +1,8 @@
 package install
 
 import (
-	"os"
 	"tuck/internal/log"
+	"tuck/internal/path"
 
 	"github.com/spf13/cobra"
 )
@@ -24,14 +24,23 @@ with a project slug or URL.`,
 		params.Package = args[0]
 		log.Infof("install: %+v\n", params)
 		if params.Local {
-			if _, err := os.Stat(params.Package); os.IsNotExist(err) {
-				log.Fatalln("local path does not exist:", params.Package)
+			if !path.Exists(params.Package) {
+				log.Fatalln("local package does not exist:", params.Package)
 			}
+			pkg := path.Abs(params.Package)
+			entries := path.Stow(pkg, path.Expand(params.Prefix))
+			log.Debugf("stowed %d entries\n", len(entries))
+			for _, entry := range entries {
+				log.Debugf("  %s\n", entry)
+			}
+			// TODO: store list of files installed by package
 		} else {
-			// TODO: download = github.DownloadRelease(params.Package, params.Release)
-			// TODO: extract
+			// TODO: release = github.GetRelease(params.Package, params.Release)
+			// TODO: asset = selectAsset(release, osInfo)
+			// TODO: pkg_archive = downloadAsset(asset)
+			// TODO: pkg_dir = archive.Extract(pkg_archive, xdg.DATA_HOME / tuck / params.Package)
+			// TODO: stow.Stow(pkg_dir, params.Prefix)
 		}
-		// TODO: stow
 	},
 }
 
