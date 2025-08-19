@@ -29,7 +29,7 @@ func statePath() (string, error) {
 	return filepath.Join(dir, "installed.json"), nil
 }
 
-func LoadState() (State, error) {
+func load() (State, error) {
 	state := make(State)
 	path, err := statePath()
 	if err != nil {
@@ -46,7 +46,7 @@ func LoadState() (State, error) {
 	return state, err
 }
 
-func DumpState(state State) error {
+func store(state State) error {
 	path, err := statePath()
 	if err != nil {
 		return err
@@ -59,16 +59,25 @@ func DumpState(state State) error {
 }
 
 func Install(name string, pkg Package) error {
-	state, err := LoadState()
+	state, err := load()
 	if err != nil {
 		return err
 	}
 	state[name] = pkg
-	return DumpState(state)
+	return store(state)
+}
+
+func Get(name string) (*Package, error) {
+	state, err := load()
+	if err != nil {
+		return nil, err
+	}
+	pkg := state[name]
+	return &pkg, nil
 }
 
 func Remove(name string) error {
-	state, err := LoadState()
+	state, err := load()
 	if err != nil {
 		return err
 	}
@@ -76,5 +85,5 @@ func Remove(name string) error {
 	if found {
 		delete(state, name)
 	}
-	return DumpState(state)
+	return store(state)
 }
