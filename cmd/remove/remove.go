@@ -21,14 +21,15 @@ with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		params.Package = args[0]
 		log.Infof("remove: %+v\n", params)
-		// TODO: remove files
 		pkg, err := state.Get(params.Package)
 		if err != nil {
 			log.Fatalln(err)
 		}
+		// remove files
 		for _, file := range pkg.Files {
 			os.Remove(file)
 		}
+		// TODO: remove empty directories
 		state.Remove(params.Package)
 	},
 }
