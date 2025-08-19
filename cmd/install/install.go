@@ -31,18 +31,25 @@ with a project slug or URL.`,
 		files := []string{}
 
 		if params.Local {
-			// TODO: check if a similar package has already been installed?
-
 			if !path.Exists(params.Package) {
 				log.Fatalln("local package does not exist:", params.Package)
 			}
 			params.Package = path.Abs(params.Package)
+
+			// check if a similar package has already been installed?
+			pkg, _ := state.Get(params.Package)
+			if pkg != nil {
+				log.Fatalf("package already installed: '%s'\n", params.Package)
+			}
+
 			files = path.Stow(params.Package, params.Prefix, params.DryRun)
 			for _, file := range files {
 				log.Infoln("installed:", file)
 			}
+
 			fmt.Printf("tuck installed %d files from '%s' into '%s'\n",
-				len(files), params.Package, params.Prefix)
+				len(files), path.Contract(params.Package),
+				path.Contract(params.Prefix))
 		} else {
 			// TODO: check if a similar package has already been installed?
 
@@ -54,7 +61,7 @@ with a project slug or URL.`,
 		}
 
 		if !params.DryRun {
-			// TODO: store list of files installed by package
+			// store list of files installed by package
 			state.Install(params.Package, state.Package{
 				Prefix:  params.Prefix,
 				Release: params.Release,

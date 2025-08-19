@@ -80,7 +80,10 @@ func Get(name string) (*Package, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkg := state[name]
+	pkg, found := state[name]
+	if !found {
+		return nil, nil
+	}
 	return &pkg, nil
 }
 
