@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"tuck/internal/log"
 	"tuck/internal/path"
+	"tuck/internal/state"
 
 	"github.com/spf13/cobra"
 )
@@ -24,29 +25,42 @@ var InstallCmd = &cobra.Command{
 with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		params.Package = args[0]
-		prefix := path.Abs(path.Expand(params.Prefix))
 		log.Debugf("install: %+v\n", params)
+
+		params.Prefix = path.Abs(path.Expand(params.Prefix))
 		files := []string{}
+
 		if params.Local {
+			// TODO: check if a similar package has already been installed?
+
 			if !path.Exists(params.Package) {
 				log.Fatalln("local package does not exist:", params.Package)
 			}
-			pkg := path.Abs(params.Package)
-			files = path.Stow(pkg, prefix, params.DryRun)
+			params.Package = path.Abs(params.Package)
+			files = path.Stow(params.Package, params.Prefix, params.DryRun)
 			for _, file := range files {
 				log.Infoln("installed:", file)
 			}
 			fmt.Printf("tuck installed %d files from '%s' into '%s'\n",
 				len(files), params.Package, params.Prefix)
 		} else {
+			// TODO: check if a similar package has already been installed?
+
 			// TODO: release = github.GetRelease(params.Package, params.Release)
 			// TODO: asset = selectAsset(release, osInfo)
 			// TODO: pkg_archive = downloadAsset(asset)
 			// TODO: pkg_dir = archive.Extract(pkg_archive, xdg.DATA_HOME / tuck / params.Package)
 			// TODO: stow.Stow(pkg_dir, params.Prefix)
 		}
+
 		if !params.DryRun {
 			// TODO: store list of files installed by package
+			state.Install(params.Package, state.Package{
+				Prefix:  params.Prefix,
+				Release: params.Release,
+				Local:   params.Local,
+				Files:   files,
+			})
 		}
 	},
 }
