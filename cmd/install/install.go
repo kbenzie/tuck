@@ -1,6 +1,7 @@
 package install
 
 import (
+	"fmt"
 	"tuck/internal/log"
 	"tuck/internal/path"
 
@@ -8,10 +9,11 @@ import (
 )
 
 var params struct {
+	Package string
 	Prefix  string
 	Release string
 	Local   bool
-	Package string
+	DryRun  bool
 }
 
 var InstallCmd = &cobra.Command{
@@ -22,24 +24,29 @@ var InstallCmd = &cobra.Command{
 with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		params.Package = args[0]
-		log.Infof("install: %+v\n", params)
+		prefix := path.Abs(path.Expand(params.Prefix))
+		log.Debugf("install: %+v\n", params)
+		files := []string{}
 		if params.Local {
 			if !path.Exists(params.Package) {
 				log.Fatalln("local package does not exist:", params.Package)
 			}
 			pkg := path.Abs(params.Package)
-			entries := path.Stow(pkg, path.Expand(params.Prefix))
-			log.Debugf("stowed %d entries\n", len(entries))
-			for _, entry := range entries {
-				log.Debugf("  %s\n", entry)
+			files = path.Stow(pkg, prefix, params.DryRun)
+			for _, file := range files {
+				log.Infoln("installed:", file)
 			}
-			// TODO: store list of files installed by package
+			fmt.Printf("tuck installed %d files from '%s' into '%s'\n",
+				len(files), params.Package, params.Prefix)
 		} else {
 			// TODO: release = github.GetRelease(params.Package, params.Release)
 			// TODO: asset = selectAsset(release, osInfo)
 			// TODO: pkg_archive = downloadAsset(asset)
 			// TODO: pkg_dir = archive.Extract(pkg_archive, xdg.DATA_HOME / tuck / params.Package)
 			// TODO: stow.Stow(pkg_dir, params.Prefix)
+		}
+		if !params.DryRun {
+			// TODO: store list of files installed by package
 		}
 	},
 }
@@ -52,4 +59,6 @@ func init() {
 		"latest", "github release to install")
 	InstallCmd.Flags().BoolVarP(&params.Local, "local", "l", false,
 		"treat package as local path")
+	InstallCmd.Flags().BoolVarP(&params.DryRun, "--dry-run", "d", false,
+		"don't actually install anything")
 }

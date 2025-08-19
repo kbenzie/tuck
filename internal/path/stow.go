@@ -51,7 +51,7 @@ func isManPage(path string) bool {
 	return strings.HasSuffix(path, ".1")
 }
 
-func Stow(src string, dst string) []string {
+func Stow(src string, dst string, dryRun bool) []string {
 	stows := []string{}
 
 	entries, err := os.ReadDir(src)
@@ -59,23 +59,63 @@ func Stow(src string, dst string) []string {
 		log.Fatalln(err)
 	}
 
-	binDir := filepath.Join(dst, "bin")
-	manDir := filepath.Join(dst, "share/man/man1")
-
 	if isStdDirLayout(entries) {
+		log.Debugln("detected package content has standard directory layout")
+
 		// TODO: stow everything but files in the root
+		dirs := []string{}
+		files := []string{}
+
 		for _, entry := range entries {
 			if entry.IsDir() {
 				filepath.WalkDir(filepath.Join(src, entry.Name()),
 					func(path string, d os.DirEntry, err error) error {
-						stows = append(stows, path)
+						if d.IsDir() {
+							dirs = append(dirs, path)
+						} else {
+							files = append(files, path)
+						}
 						return err
 					})
 			}
 		}
 
-		// TODO: copy stows to dst
+		// create directories in dst
+		for _, indir := range dirs {
+			reldir, err := filepath.Rel(src, indir)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			outdir := filepath.Join(dst, reldir)
+			if !Exists(outdir) {
+				if !dryRun {
+					err := os.MkdirAll(outdir, os.ModePerm)
+					if err != nil {
+						log.Fatalln(err)
+					}
+				}
+			}
+		}
+
+		// move files to dst
+		for _, infile := range files {
+			relfile, err := filepath.Rel(src, infile)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			outfile := filepath.Join(dst, relfile)
+			if !dryRun {
+				err = os.Rename(infile, outfile)
+				if err != nil {
+					log.Fatalln(err)
+				}
+			}
+			stows = append(stows, outfile)
+		}
+
 	} else {
+		log.Debugln("detected package content has non-standard directory layout")
+
 		// recursively enumerate entries in src path
 		dirs := []string{}
 		files := []string{}
@@ -107,30 +147,41 @@ func Stow(src string, dst string) []string {
 		// }
 
 		if len(bins) > 0 {
-			err := os.MkdirAll(binDir, os.ModePerm)
-			if err != nil {
-				log.Fatalln(err)
+			binDir := filepath.Join(dst, "bin")
+			if !dryRun {
+				err := os.MkdirAll(binDir, os.ModePerm)
+				if err != nil {
+					log.Fatalln(err)
+				}
 			}
 			for _, inbin := range bins {
 				outbin := filepath.Join(binDir, filepath.Base(inbin))
-				err := os.Rename(inbin, outbin)
-				if err != nil {
-					log.Fatalln(err)
+				if !dryRun {
+					err := os.Rename(inbin, outbin)
+					if err != nil {
+						log.Fatalln(err)
+					}
 				}
 				stows = append(stows, outbin)
 			}
 		}
 
 		if len(manpages) > 0 {
-			err = os.MkdirAll(manDir, os.ModePerm)
-			if err != nil {
-				log.Fatalln(err)
+			// TODO: Don't assume man1 directory
+			manDir := filepath.Join(dst, "share/man/man1")
+			if !dryRun {
+				err = os.MkdirAll(manDir, os.ModePerm)
+				if err != nil {
+					log.Fatalln(err)
+				}
 			}
 			for _, src := range manpages {
 				outbin := filepath.Join(manDir, filepath.Base(src))
-				err := os.Rename(src, outbin)
-				if err != nil {
-					log.Fatalln(err)
+				if !dryRun {
+					err := os.Rename(src, outbin)
+					if err != nil {
+						log.Fatalln(err)
+					}
 				}
 				stows = append(stows, outbin)
 			}
