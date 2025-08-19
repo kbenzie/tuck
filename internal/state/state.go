@@ -67,6 +67,14 @@ func Install(name string, pkg Package) error {
 	return store(state)
 }
 
+func GetAll() (*State, error) {
+	state, err := load()
+	if err != nil {
+		return nil, err
+	}
+	return &state, nil
+}
+
 func Get(name string) (*Package, error) {
 	state, err := load()
 	if err != nil {

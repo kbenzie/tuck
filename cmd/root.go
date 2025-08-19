@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"tuck/cmd/install"
+	"tuck/cmd/list"
 	"tuck/cmd/remove"
 	"tuck/internal/log"
 )
@@ -41,6 +42,7 @@ func init() {
 	rootCmd.PersistentFlags().CountVarP(&params.Verbose, "verbose", "v",
 		"enable verbose output")
 	rootCmd.AddCommand(install.InstallCmd)
+	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(remove.RemoveCmd)
 }
 
