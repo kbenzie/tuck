@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"tuck/internal/log"
+
+	"github.com/adrg/xdg"
 )
 
 func Abs(path string) string {
@@ -22,22 +24,14 @@ func Exists(path string) bool {
 
 func Expand(path string) string {
 	if strings.HasPrefix(path, "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Errorln(err)
-		}
-		path = filepath.Join(home, path[1:])
+		path = filepath.Join(xdg.Home, path[1:])
 	}
 	return path
 }
 
 func Contract(path string) string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Errorln(err)
-	}
-	if strings.HasPrefix(path, home) {
-		path = "~" + path[len(home):]
+	if strings.HasPrefix(path, xdg.Home) {
+		path = "~" + path[len(xdg.Home):]
 	}
 	return path
 }
