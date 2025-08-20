@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-
-	"github.com/adrg/xdg"
+	"tuck/internal/path"
 )
 
 type Package struct {
@@ -17,24 +16,13 @@ type Package struct {
 
 type State = map[string]Package
 
-func statePath() (string, error) {
-	dir := filepath.Join(xdg.StateHome, "tuck")
-	info, _ := os.Stat(dir)
-	if info == nil || !info.IsDir() {
-		err := os.MkdirAll(dir, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-	}
-	return filepath.Join(dir, "installed.json"), nil
+func statePath() string {
+	return filepath.Join(path.StateDir, "installed.json")
 }
 
 func load() (State, error) {
 	state := make(State)
-	path, err := statePath()
-	if err != nil {
-		return state, err
-	}
+	path := statePath()
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return state, nil
 	}
@@ -47,10 +35,7 @@ func load() (State, error) {
 }
 
 func store(state State) error {
-	path, err := statePath()
-	if err != nil {
-		return err
-	}
+	path := statePath()
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return err
