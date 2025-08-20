@@ -2,6 +2,10 @@ package install
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"tuck/internal/archive"
+	"tuck/internal/github"
 	"tuck/internal/log"
 	"tuck/internal/path"
 	"tuck/internal/state"
@@ -30,6 +34,9 @@ with a project slug or URL.`,
 		params.Prefix = path.Abs(path.Expand(params.Prefix))
 		files := []string{}
 
+		// TODO: create a file lock, defer its deletion, do the same for other
+		// commands which mutate the filesystem state
+
 		if params.Local {
 			if !path.Exists(params.Package) {
 				log.Fatalln("local package does not exist:", params.Package)
@@ -42,23 +49,69 @@ with a project slug or URL.`,
 				log.Fatalf("package already installed: '%s'\n", params.Package)
 			}
 
+			// TODO: link instead of move for local packages
 			files = path.Stow(params.Package, params.Prefix, params.DryRun)
-			for _, file := range files {
-				log.Infoln("installed:", file)
-			}
-
-			fmt.Printf("tuck installed %d files from '%s' into '%s'\n",
-				len(files), path.Contract(params.Package),
-				path.Contract(params.Prefix))
 		} else {
 			// TODO: check if a similar package has already been installed?
 
-			// TODO: release = github.GetRelease(params.Package, params.Release)
-			// TODO: asset = selectAsset(release, osInfo)
-			// TODO: pkg_archive = downloadAsset(asset)
-			// TODO: pkg_dir = archive.Extract(pkg_archive, xdg.DATA_HOME / tuck / params.Package)
-			// TODO: stow.Stow(pkg_dir, params.Prefix)
+			release, err := github.GetRelease(params.Package, params.Release)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			// TODO: make filter configurable
+			defaultFilters := []string{
+				`^.*(x86_64|x86-64|amd64).*linux.*\.tar\.(gz|xz)$`,
+				`^.*linux.*(x86_64|x86-64|amd64).*\.tar\.(gz|xz)$`,
+			}
+			asset, err := github.SelectAsset(release, defaultFilters)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			archivePath := filepath.Join(path.CacheDir, asset.Name)
+			// TODO: validate checksum
+			err = path.DownloadFile(asset.BrowserDownloadUrl, archivePath)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			log.Debugln(path.CacheDir)
+			err = archive.Extract(archivePath, path.CacheDir)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			if err := os.Remove(archivePath); err != nil {
+				log.Fatalln(err)
+			}
+
+			// TODO: detect if ~/.cache/tuck contains a 1 directory or multiple
+			// entries
+			entries, err := os.ReadDir(path.CacheDir)
+			if err != nil {
+				log.Fatalln(err)
+			}
+			dir := ""
+			if len(entries) == 1 && entries[0].IsDir() {
+				dir = filepath.Join(path.CacheDir, entries[0].Name())
+			} else {
+				// assume the archive didn't contain a root directory, this
+				// relies on the cache directory being empty
+				dir = path.CacheDir
+			}
+
+			files = path.Stow(dir, params.Prefix, params.DryRun)
+
+			// remove the package directory, cache dir may no longer exist
+			os.RemoveAll(dir)
 		}
+
+		for _, file := range files {
+			log.Infoln("installed:", file)
+		}
+		fmt.Printf("tuck installed %d files from '%s' into '%s'\n",
+			len(files), path.Contract(params.Package),
+			path.Contract(params.Prefix))
 
 		if !params.DryRun {
 			// store list of files installed by package
