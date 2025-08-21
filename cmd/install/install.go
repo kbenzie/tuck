@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"tuck/internal/archive"
+	"tuck/internal/config"
 	"tuck/internal/github"
 	"tuck/internal/log"
 	"tuck/internal/path"
@@ -36,6 +37,11 @@ with a project slug or URL.`,
 
 		// TODO: create a file lock, defer its deletion, do the same for other
 		// commands which mutate the filesystem state
+		cfg, err := config.Load()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		log.Debugln(cfg)
 
 		if params.Local {
 			if !path.Exists(params.Package) {
@@ -58,12 +64,7 @@ with a project slug or URL.`,
 			if err != nil {
 				log.Fatalln(err)
 			}
-			// TODO: make filter configurable
-			defaultFilters := []string{
-				`^.*(x86_64|x86-64|amd64).*linux.*\.tar\.(gz|xz)$`,
-				`^.*linux.*(x86_64|x86-64|amd64).*\.tar\.(gz|xz)$`,
-			}
-			asset, err := github.SelectAsset(release, defaultFilters)
+			asset, err := github.SelectAsset(release, cfg.Filters)
 			if err != nil {
 				log.Fatalln(err)
 			}

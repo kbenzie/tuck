@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"tuck/internal/config"
+	"tuck/internal/log"
 )
 
 type ReleaseAsset struct {
@@ -68,18 +70,53 @@ func GetRelease(repo string, release string) (Release, error) {
 	}
 }
 
-func SelectAsset(release Release, filters []string) (ReleaseAsset, error) {
-	candidates := []ReleaseAsset{}
-	res := []*regexp.Regexp{}
+func makeRegexFilters(filters []string) []*regexp.Regexp {
+	regexFilters := []*regexp.Regexp{}
 	for _, filter := range filters {
-		res = append(res, regexp.MustCompile(filter))
+		regexFilters = append(regexFilters, regexp.MustCompile(filter))
 	}
-	for _, asset := range release.Assets {
-		for _, re := range res {
+	return regexFilters
+}
+
+func matchAllFilters(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []ReleaseAsset {
+	candidates := []ReleaseAsset{}
+	// TODO: not sure this is actually matching all the filters...
+	for _, asset := range assets {
+		matchCount := 0
+		for _, re := range regexFilters {
 			if re.MatchString(asset.Name) {
-				candidates = append(candidates, asset)
+				matchCount++
 			}
 		}
+		if matchCount == len(regexFilters) {
+			candidates = append(candidates, asset)
+		}
+	}
+	return candidates
+}
+
+func matchAnyFilter(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []ReleaseAsset {
+	candidates := []ReleaseAsset{}
+	for _, asset := range assets {
+		matched := false
+		for _, re := range regexFilters {
+			if re.MatchString(asset.Name) {
+				matched = true
+			}
+		}
+		if matched {
+			candidates = append(candidates, asset)
+		}
+	}
+	return candidates
+}
+
+func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, error) {
+	candidates := matchAllFilters(release.Assets,
+		makeRegexFilters(filters.Required))
+	log.Infof("found %d candiates matching required filters:\n", len(candidates))
+	for _, cand := range candidates {
+		log.Infof("  %s\n", cand.Name)
 	}
 	switch len(candidates) {
 	case 0:
@@ -88,12 +125,22 @@ func SelectAsset(release Release, filters []string) (ReleaseAsset, error) {
 	case 1:
 		return candidates[0], nil
 	default:
-		names := []string{}
-		for _, cand := range candidates {
-			names = append(names, cand.Name)
+		candidates = matchAnyFilter(candidates,
+			makeRegexFilters(filters.Optional))
+		switch len(candidates) {
+		case 1:
+			return candidates[0], nil
+		case 0:
+			return ReleaseAsset{}, fmt.Errorf("multiple assets matched the " +
+				"required filters but non matched the optional filters")
+		default:
+			names := []string{}
+			for _, cand := range candidates {
+				names = append(names, cand.Name)
+			}
+			return ReleaseAsset{}, fmt.Errorf("multiple assets matched both "+
+				"the required and optional filters:\n  %s\n",
+				strings.Join(names, "\n  "))
 		}
-		return ReleaseAsset{}, fmt.Errorf(
-			"multiple assets found match the filter '%v':\n%s",
-			filters, strings.Join(names, "\n"))
 	}
 }
