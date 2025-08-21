@@ -1,8 +1,10 @@
 package remove
 
 import (
+	"fmt"
 	"os"
 	"tuck/internal/log"
+	"tuck/internal/path"
 	"tuck/internal/state"
 
 	"github.com/spf13/cobra"
@@ -30,9 +32,14 @@ with a project slug or URL.`,
 			os.Remove(file)
 			log.Infoln("removed:", file)
 		}
-		// TODO: remove empty directories
 		state.Remove(params.Package)
+		fmt.Printf("tuck removed %d files from '%s' out of '%s'\n",
+			len(pkg.Files), path.Contract(params.Package),
+			path.Contract(pkg.Prefix))
+		// TODO: remove empty directories
 	},
 }
 
-func init() {}
+func init() {
+	RemoveCmd.Aliases = append(RemoveCmd.Aliases, "rm")
+}
