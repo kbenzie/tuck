@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	CacheDir string = filepath.Join(xdg.CacheHome, "tuck")
-	StateDir string = filepath.Join(xdg.StateHome, "tuck")
+	CacheDir  = filepath.Join(xdg.CacheHome, "tuck")
+	ConfigDir = filepath.Join(xdg.ConfigHome, "tuck")
+	StateDir  = filepath.Join(xdg.StateHome, "tuck")
 )
 
 func Abs(path string) string {
