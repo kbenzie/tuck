@@ -15,6 +15,8 @@ func Extract(archive string, outdir string) error {
 		return tar("xJf", archive, outdir)
 	case strings.HasSuffix(archive, ".tar.bz2"):
 		return tar("xjf", archive, outdir)
+	case strings.HasSuffix(archive, ".zip"):
+		return unzip(archive, outdir)
 	default:
 		return fmt.Errorf("unsupported archive type: %s", archive)
 	}
@@ -32,6 +34,27 @@ func tar(flags string, archive string, outdir string) error {
 	}
 
 	cmd := exec.Command("tar", flags, archive)
+	err = cmd.Run()
+	if err != nil {
+		exitErr := err.(*exec.ExitError)
+		return fmt.Errorf("extracting '%s' failed:\n%s", archive, exitErr.Stderr)
+	}
+
+	return nil
+}
+
+func unzip(archive string, outdir string) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	err = os.Chdir(outdir)
+	defer os.Chdir(cwd)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("unzip", archive)
 	err = cmd.Run()
 	if err != nil {
 		exitErr := err.(*exec.ExitError)

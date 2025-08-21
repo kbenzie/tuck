@@ -14,6 +14,11 @@ var (
 	ConfigFile = filepath.Join(path.ConfigDir, "tuck.yaml")
 )
 
+// The filters below are used to select the release assets based on properties
+// of the localhost; required properties such as operating system and CPU
+// architecture, these must all match for an asset to be selected; optional
+// properties such as the linked C standard library, these will be used in the
+// event there are multiple candiate releases assets to choose from.
 type ConfigFilters struct {
 	Required []string `yaml:"required"`
 	Optional []string `yaml:"optional"`
@@ -28,7 +33,7 @@ func linuxDefaultFilters() ConfigFilters {
 	filters.Required = append(filters.Required,
 		"linux",
 		"(amd64|x86-64|x86_64)", // TODO: detect this
-		".tar.(gz|bz2|xz)",
+		"(.tar.(gz|bz2|xz)|.zip)",
 	)
 	filters.Optional = append(filters.Optional,
 		"musl",

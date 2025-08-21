@@ -76,7 +76,6 @@ with a project slug or URL.`,
 				log.Fatalln(err)
 			}
 
-			log.Debugln(path.CacheDir)
 			err = archive.Extract(archivePath, path.CacheDir)
 			if err != nil {
 				log.Fatalln(err)

@@ -62,7 +62,10 @@ func Stow(src string, dst string, dryRun bool) []string {
 	if isStdDirLayout(entries) {
 		log.Debugln("detected package content has standard directory layout")
 
-		// TODO: stow everything but files in the root
+		// FIXME: don't stow everything but files in the root instead only stow
+		// files in directories we know about, currently this will install any
+		// directory in the archive even when that doesn't make sense, e.g.
+		// completions should likely live elsewhere.
 		dirs := []string{}
 		files := []string{}
 

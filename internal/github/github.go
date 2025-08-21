@@ -112,6 +112,7 @@ func matchAnyFilter(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []Rele
 }
 
 func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, error) {
+	candidate := ReleaseAsset{}
 	candidates := matchAllFilters(release.Assets,
 		makeRegexFilters(filters.Required))
 	log.Infof("found %d candiates matching required filters:\n", len(candidates))
@@ -123,13 +124,13 @@ func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, e
 		return ReleaseAsset{}, fmt.Errorf(
 			"no assets found matching the filters '%v'", filters)
 	case 1:
-		return candidates[0], nil
+		candidate = candidates[0]
 	default:
 		candidates = matchAnyFilter(candidates,
 			makeRegexFilters(filters.Optional))
 		switch len(candidates) {
 		case 1:
-			return candidates[0], nil
+			candidate = candidates[0]
 		case 0:
 			return ReleaseAsset{}, fmt.Errorf("multiple assets matched the " +
 				"required filters but non matched the optional filters")
@@ -143,4 +144,6 @@ func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, e
 				strings.Join(names, "\n  "))
 		}
 	}
+	log.Infoln("selected release asset:", candidate.Name)
+	return candidate, nil
 }
