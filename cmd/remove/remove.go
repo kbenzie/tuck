@@ -28,6 +28,7 @@ with a project slug or URL.`,
 		// remove files
 		for _, file := range pkg.Files {
 			os.Remove(file)
+			log.Infoln("removed:", file)
 		}
 		// TODO: remove empty directories
 		state.Remove(params.Package)
