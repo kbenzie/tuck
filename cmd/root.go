@@ -1,12 +1,14 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
+	"fmt"
 	"os"
 	"tuck/cmd/install"
 	"tuck/cmd/list"
 	"tuck/cmd/remove"
 	"tuck/internal/log"
+
+	"github.com/spf13/cobra"
 )
 
 var params struct {
@@ -27,13 +29,10 @@ Tuck has the following goals:
 		switch params.Verbose {
 		case 0:
 			log.SetLevel(log.LevelWarn)
-			break
 		case 1:
 			log.SetLevel(log.LevelInfo)
-			break
 		default:
 			log.SetLevel(log.LevelDebug)
-			break
 		}
 	},
 }
@@ -44,6 +43,10 @@ func init() {
 	rootCmd.AddCommand(install.InstallCmd)
 	rootCmd.AddCommand(list.ListCmd)
 	rootCmd.AddCommand(remove.RemoveCmd)
+}
+
+func SetVersion(version string, commit string, date string) {
+	rootCmd.Version = fmt.Sprintf("%s (%s - %s)", version, commit, date)
 }
 
 func Execute() {
