@@ -1,4 +1,4 @@
-package remove
+package cmd
 
 import (
 	"fmt"
@@ -10,20 +10,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var params struct {
+var removeParams struct {
 	Package string
 }
 
-var RemoveCmd = &cobra.Command{
+var removeCmd = &cobra.Command{
 	Use:   "remove [flags] package",
 	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	Short: "Remove an installed package",
 	Long: `Remove a package with a local path or from a GitHub release
 with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		params.Package = args[0]
-		log.Infof("remove: %+v\n", params)
-		pkg, err := state.Get(params.Package)
+		removeParams.Package = args[0]
+		log.Infof("remove: %+v\n", removeParams)
+		pkg, err := state.Get(removeParams.Package)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -32,14 +32,15 @@ with a project slug or URL.`,
 			os.Remove(file)
 			log.Infoln("removed:", file)
 		}
-		state.Remove(params.Package)
+		state.Remove(removeParams.Package)
 		fmt.Printf("tuck removed %d files from '%s' out of '%s'\n",
-			len(pkg.Files), path.Contract(params.Package),
+			len(pkg.Files), path.Contract(removeParams.Package),
 			path.Contract(pkg.Prefix))
 		// TODO: remove empty directories
 	},
 }
 
 func init() {
-	RemoveCmd.Aliases = append(RemoveCmd.Aliases, "rm")
+	rootCmd.AddCommand(removeCmd)
+	removeCmd.Aliases = append(removeCmd.Aliases, "rm")
 }

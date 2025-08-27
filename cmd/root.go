@@ -3,9 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"tuck/cmd/install"
-	"tuck/cmd/list"
-	"tuck/cmd/remove"
 	"tuck/internal/log"
 
 	"github.com/spf13/cobra"
@@ -40,9 +37,6 @@ Tuck has the following goals:
 func init() {
 	rootCmd.PersistentFlags().CountVarP(&params.Verbose, "verbose", "v",
 		"enable verbose output")
-	rootCmd.AddCommand(install.InstallCmd)
-	rootCmd.AddCommand(list.ListCmd)
-	rootCmd.AddCommand(remove.RemoveCmd)
 }
 
 func SetVersion(version string, commit string, date string) {
