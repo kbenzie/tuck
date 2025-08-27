@@ -33,6 +33,6 @@ var listCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().BoolVarP(&listParams.Quiet, "--quiet", "q", false,
+	listCmd.Flags().BoolVarP(&listParams.Quiet, "quiet", "q", false,
 		"list only package names, nothing else")
 }

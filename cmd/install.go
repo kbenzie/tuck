@@ -134,6 +134,6 @@ func init() {
 		"latest", "github release to install")
 	installCmd.Flags().BoolVarP(&installParams.Local, "local", "l", false,
 		"treat package as local path")
-	installCmd.Flags().BoolVarP(&installParams.DryRun, "--dry-run", "d", false,
+	installCmd.Flags().BoolVarP(&installParams.DryRun, "dry-run", "d", false,
 		"don't actually install anything")
 }
