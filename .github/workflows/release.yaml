@@ -22,11 +22,13 @@ jobs:
         with:
           go-version: ">=1.22"
 
+      - name: Download dependencies
+        run: go mod tidy
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           args: release --clean
-          workdir: ${{ github.workspace }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
