@@ -20,6 +20,7 @@ var removeCmd = &cobra.Command{
 	Short: "Remove an installed package",
 	Long: `Remove a package with a local path or from a GitHub release
 with a project slug or URL.`,
+	ValidArgsFunction: removeValidArgsFunc,
 	Run: func(cmd *cobra.Command, args []string) {
 		removeParams.Package = args[0]
 		log.Infof("remove: %+v\n", removeParams)
@@ -38,6 +39,18 @@ with a project slug or URL.`,
 			path.Contract(pkg.Prefix))
 		// TODO: remove empty directories
 	},
+}
+
+func removeValidArgsFunc(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	var completions []string
+	pkgs, err := state.GetAll()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	for name := range *pkgs {
+		completions = append(completions, name)
+	}
+	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 func init() {
