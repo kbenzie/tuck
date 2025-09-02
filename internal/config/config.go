@@ -47,7 +47,7 @@ func linuxDefaultFilters() ConfigFilters {
 	filters.Required = append(filters.Required,
 		"linux",
 		detectArchFilter(),
-		"(.tar.(gz|bz2|xz)|.zip)",
+		"(.tar.(gz|bz2|xz)|.zip)$",
 	)
 	filters.Optional = append(filters.Optional,
 		"musl",
@@ -60,7 +60,7 @@ func darwinDefaultFilters() ConfigFilters {
 	filters.Required = append(filters.Required,
 		"(mac|macos|darwin)",
 		detectArchFilter(),
-		"(.tar.(gz|bz2|xz)|.zip)",
+		"(.tar.(gz|bz2|xz)|.zip)$",
 	)
 	return filters
 }
