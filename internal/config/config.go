@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,15 +29,38 @@ type Config struct {
 	Filters ConfigFilters `yaml:"filters"`
 }
 
+func detectArchFilter() string {
+	switch runtime.GOARCH {
+	case "amd64":
+		return "(amd64|x86-64|x86_64)"
+	case "arm64":
+		return "(arm64|aarch64)"
+	default:
+		// TODO: Handle other architectures
+		log.Fatalln("unimplemented arch:", runtime.GOARCH)
+		return ""
+	}
+}
+
 func linuxDefaultFilters() ConfigFilters {
 	filters := ConfigFilters{}
 	filters.Required = append(filters.Required,
 		"linux",
-		"(amd64|x86-64|x86_64)", // TODO: detect this
+		detectArchFilter(),
 		"(.tar.(gz|bz2|xz)|.zip)",
 	)
 	filters.Optional = append(filters.Optional,
 		"musl",
+	)
+	return filters
+}
+
+func darwinDefaultFilters() ConfigFilters {
+	filters := ConfigFilters{}
+	filters.Required = append(filters.Required,
+		"(mac|macos|darwin)",
+		detectArchFilter(),
+		"(.tar.(gz|bz2|xz)|.zip)",
 	)
 	return filters
 }
@@ -54,6 +78,8 @@ func Load() (Config, error) {
 		switch runtime.GOOS {
 		case "linux":
 			config.Filters = linuxDefaultFilters()
+		case "darwin":
+			config.Filters = darwinDefaultFilters()
 		default:
 			return config, fmt.Errorf("unimplemented OS: %s", runtime.GOOS)
 		}
