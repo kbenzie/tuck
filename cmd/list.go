@@ -18,6 +18,8 @@ var listCmd = &cobra.Command{
 	Short: "List installed packages",
 	Long:  `List installed packages.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		log.Debugf("list: %+v\n", listParams)
+
 		pkgs, err := state.GetAll()
 		if err != nil {
 			log.Fatalln(err)
@@ -25,8 +27,13 @@ var listCmd = &cobra.Command{
 		if !listParams.Quiet {
 			fmt.Println(len(*pkgs), "packages are installed")
 		}
-		for name, _ := range *pkgs {
+		for name, pkg := range *pkgs {
 			fmt.Printf("%s\n", name)
+			if log.Level <= log.LevelInfo {
+				for _, file := range pkg.Files {
+					fmt.Printf("  %s\n", file)
+				}
+			}
 		}
 	},
 }
