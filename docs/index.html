@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tuck</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .download-box {
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .download-box h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .download-box p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+        }
+        .download-command-container {
+            position: relative;
+        }
+        .download-command {
+            background-color: #e9e9e9;
+            border: 1px solid #ccc;
+            border-left: 5px solid #007bff;
+            padding: 15px;
+            padding-right: 50px; /* Space for the button */
+            font-family: monospace;
+            text-align: left;
+            overflow-x: auto;
+            white-space: nowrap;
+            font-size: 0.95em;
+            color: #333;
+            border-radius: 4px;
+        }
+        #copy-button {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        #copy-button:hover {
+            background: #0056b3;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-color: #282c34;
+                color: #e0e0e0;
+            }
+            .download-box {
+                background-color: #3a3f47;
+                border: 1px solid #555;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            }
+            .download-box h1 {
+                color: #e0e0e0;
+            }
+            .download-box p {
+                color: #b0b0b0;
+            }
+            .download-command {
+                background-color: #21252b;
+                border: 1px solid #444;
+                border-left: 5px solid #61afef;
+                color: #e0e0e0;
+            }
+            #copy-button {
+                background: #61afef;
+                color: #21252b;
+            }
+            #copy-button:hover {
+                background: #4d8ac0;
+            }
+            p[style="margin-top: 25px; font-size: 0.9em; color: #888;"] {
+                color: #999 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="download-box">
+        <h1>tuck</h1>
+        <p>Download and install the tuck tool with a single command:</p>
+        <div class="download-command-container">
+            <div class="download-command">
+                <code id="command">curl -sfL https://kbenzie.github.io/tuck/get.sh | sh</code>
+            </div>
+            <button id="copy-button">Copy</button>
+        </div>
+    </div>
+
+    <script>
+        const copyButton = document.getElementById('copy-button');
+        const commandText = document.getElementById('command').innerText;
+
+        copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(commandText).then(() => {
+                copyButton.innerText = 'Copied!';
+                setTimeout(() => {
+                    copyButton.innerText = 'Copy';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        });
+    </script>
+</body>
+</html>

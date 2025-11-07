@@ -5,12 +5,12 @@ on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -32,3 +32,38 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-gh-pages:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    needs: goreleaser
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # required by mike for version support
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Create site directory
+        run: mkdir _site
+
+      - name: Copy webpage to site directory
+        run: cp docs/index.html _site/index.html
+
+      - name: Create get.sh from template
+        run: sed 's/<tag>/${{ github.ref_name }}/g' docs/get.sh > _site/get.sh
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
