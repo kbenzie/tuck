@@ -3,6 +3,8 @@ package github
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -47,17 +49,53 @@ type Release struct {
 	ZipballUrl      string         `json:"zipball_url"`
 }
 
-func getRelease(url string) (Release, error) {
-	cmd := exec.Command("gh", "api", url)
-	cmd.Stderr = os.Stderr
+func isGhLoggedIn() bool {
+	cmd := exec.Command("gh", "auth", "status")
 	response, err := cmd.Output()
 	if err != nil {
-		return Release{}, err
+		return false
 	}
+	type AuthStatus struct {
+		Hosts map[string]any
+	}
+	ghAuthStatus := AuthStatus{}
+	err = json.Unmarshal(response, &ghAuthStatus)
+	if len(ghAuthStatus.Hosts) == 0 {
+		return false
+	}
+	return true
+}
+
+func getRelease(url string) (Release, error) {
 	release := Release{}
-	err = json.Unmarshal(response, &release)
-	if err != nil {
-		return Release{}, err
+	if isGhLoggedIn() {
+		// Prefer using gh when is authenticated
+		cmd := exec.Command("gh", "api", url)
+		cmd.Stderr = os.Stderr
+		response, err := cmd.Output()
+		if err != nil {
+			return release, err
+		}
+		err = json.Unmarshal(response, &release)
+		if err != nil {
+			return release, err
+		}
+	} else {
+		// Use raw http request as gh doesn't allow unauthenticated api
+		// requests, however this might get rate limited
+		response, err := http.Get(fmt.Sprintf("https://api.github.com/%s", url))
+		if err != nil {
+			return release, err
+		}
+		defer response.Body.Close()
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return release, err
+		}
+		err = json.Unmarshal(body, &release)
+		if err != nil {
+			return release, err
+		}
 	}
 	return release, nil
 }
