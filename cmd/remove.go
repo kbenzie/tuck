@@ -28,6 +28,10 @@ with a project slug or URL.`,
 		if err != nil {
 			log.Fatalln(err)
 		}
+		if pkg == nil {
+			log.Errorln("package not installed:", removeParams.Package)
+			return
+		}
 		// remove files
 		for _, file := range pkg.Files {
 			os.Remove(file)
