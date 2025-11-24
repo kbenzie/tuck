@@ -49,6 +49,11 @@ type Release struct {
 	ZipballUrl      string         `json:"zipball_url"`
 }
 
+type assetMatch struct {
+	asset      ReleaseAsset
+	matchCount int
+}
+
 func isGhLoggedIn() bool {
 	cmd := exec.Command("gh", "auth", "status")
 	response, err := cmd.Output()
@@ -111,7 +116,7 @@ func GetRelease(repo string, release string) (Release, error) {
 func makeRegexFilters(filters []string) []*regexp.Regexp {
 	regexFilters := []*regexp.Regexp{}
 	for _, filter := range filters {
-		regexFilters = append(regexFilters, regexp.MustCompile("(?i)" + filter))
+		regexFilters = append(regexFilters, regexp.MustCompile("(?i)"+filter))
 	}
 	return regexFilters
 }
@@ -133,17 +138,17 @@ func matchAllFilters(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []Rel
 	return candidates
 }
 
-func matchAnyFilter(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []ReleaseAsset {
-	candidates := []ReleaseAsset{}
+func matchAnyFilter(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []assetMatch {
+	candidates := []assetMatch{}
 	for _, asset := range assets {
-		matched := false
+		matchCount := 0
 		for _, re := range regexFilters {
 			if re.MatchString(asset.Name) {
-				matched = true
+				matchCount++
 			}
 		}
-		if matched {
-			candidates = append(candidates, asset)
+		if matchCount > 0 {
+			candidates = append(candidates, assetMatch{asset: asset, matchCount: matchCount})
 		}
 	}
 	return candidates
@@ -164,22 +169,39 @@ func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, e
 	case 1:
 		candidate = candidates[0]
 	default:
-		candidates = matchAnyFilter(candidates,
+		optionalMatches := matchAnyFilter(candidates,
 			makeRegexFilters(filters.Optional))
-		switch len(candidates) {
-		case 1:
-			candidate = candidates[0]
+
+		switch len(optionalMatches) {
 		case 0:
 			return ReleaseAsset{}, fmt.Errorf("multiple assets matched the " +
 				"required filters but non matched the optional filters")
+		case 1:
+			candidate = optionalMatches[0].asset
 		default:
-			names := []string{}
-			for _, cand := range candidates {
-				names = append(names, cand.Name)
+			bestMatchCount := 0
+			for _, match := range optionalMatches {
+				if match.matchCount > bestMatchCount {
+					bestMatchCount = match.matchCount
+				}
 			}
-			return ReleaseAsset{}, fmt.Errorf("multiple assets matched both "+
-				"the required and optional filters:\n  %s\n",
-				strings.Join(names, "\n  "))
+			bestCandidates := []assetMatch{}
+			for _, match := range optionalMatches {
+				if match.matchCount == bestMatchCount {
+					bestCandidates = append(bestCandidates, match)
+				}
+			}
+			if len(bestCandidates) == 1 {
+				candidate = bestCandidates[0].asset
+			} else {
+				names := []string{}
+				for _, cand := range bestCandidates {
+					names = append(names, cand.asset.Name)
+				}
+				return ReleaseAsset{}, fmt.Errorf("multiple assets matched both "+
+					"the required and optional filters with the same priority:\n  %s\n",
+					strings.Join(names, "\n  "))
+			}
 		}
 	}
 	log.Infoln("selected release asset:", candidate.Name)
