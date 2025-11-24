@@ -111,7 +111,7 @@ func GetRelease(repo string, release string) (Release, error) {
 func makeRegexFilters(filters []string) []*regexp.Regexp {
 	regexFilters := []*regexp.Regexp{}
 	for _, filter := range filters {
-		regexFilters = append(regexFilters, regexp.MustCompile(filter))
+		regexFilters = append(regexFilters, regexp.MustCompile("(?i)" + filter))
 	}
 	return regexFilters
 }
