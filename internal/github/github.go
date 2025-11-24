@@ -52,6 +52,7 @@ type Release struct {
 type assetMatch struct {
 	asset      ReleaseAsset
 	matchCount int
+	rank       int
 }
 
 func isGhLoggedIn() bool {
@@ -142,13 +143,21 @@ func matchAnyFilter(assets []ReleaseAsset, regexFilters []*regexp.Regexp) []asse
 	candidates := []assetMatch{}
 	for _, asset := range assets {
 		matchCount := 0
-		for _, re := range regexFilters {
+		rank := -1
+		for i, re := range regexFilters {
 			if re.MatchString(asset.Name) {
 				matchCount++
+				if rank == -1 {
+					rank = i
+				}
 			}
 		}
 		if matchCount > 0 {
-			candidates = append(candidates, assetMatch{asset: asset, matchCount: matchCount})
+			candidates = append(candidates, assetMatch{
+				asset:      asset,
+				matchCount: matchCount,
+				rank:       rank,
+			})
 		}
 	}
 	return candidates
@@ -179,28 +188,51 @@ func SelectAsset(release Release, filters config.ConfigFilters) (ReleaseAsset, e
 		case 1:
 			candidate = optionalMatches[0].asset
 		default:
-			bestMatchCount := 0
+			// Find the highest match count
+			highestMatchCount := 0
 			for _, match := range optionalMatches {
-				if match.matchCount > bestMatchCount {
-					bestMatchCount = match.matchCount
+				if match.matchCount > highestMatchCount {
+					highestMatchCount = match.matchCount
 				}
 			}
+
+			// Collect all candidates with the highest match count
 			bestCandidates := []assetMatch{}
 			for _, match := range optionalMatches {
-				if match.matchCount == bestMatchCount {
+				if match.matchCount == highestMatchCount {
 					bestCandidates = append(bestCandidates, match)
 				}
 			}
+
 			if len(bestCandidates) == 1 {
 				candidate = bestCandidates[0].asset
 			} else {
-				names := []string{}
-				for _, cand := range bestCandidates {
-					names = append(names, cand.asset.Name)
+				// Tie-break with ranking
+				lowestRank := -1
+				for _, match := range bestCandidates {
+					if lowestRank == -1 || match.rank < lowestRank {
+						lowestRank = match.rank
+					}
 				}
-				return ReleaseAsset{}, fmt.Errorf("multiple assets matched both "+
-					"the required and optional filters with the same priority:\n  %s\n",
-					strings.Join(names, "\n  "))
+
+				tiebreakCandidates := []assetMatch{}
+				for _, match := range bestCandidates {
+					if match.rank == lowestRank {
+						tiebreakCandidates = append(tiebreakCandidates, match)
+					}
+				}
+
+				if len(tiebreakCandidates) == 1 {
+					candidate = tiebreakCandidates[0].asset
+				} else {
+					names := []string{}
+					for _, cand := range tiebreakCandidates {
+						names = append(names, cand.asset.Name)
+					}
+					return ReleaseAsset{}, fmt.Errorf("multiple assets matched both "+
+						"the required and optional filters with the same priority:\n  %s\n",
+						strings.Join(names, "\n  "))
+				}
 			}
 		}
 	}
