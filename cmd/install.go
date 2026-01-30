@@ -32,11 +32,15 @@ with a project slug or URL.`,
 		installParams.Package = args[0]
 		log.Debugf("install: %+v\n", installParams)
 
+		unlock, err := path.AcquireLock()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer unlock()
+
 		installParams.Prefix = path.Abs(path.Expand(installParams.Prefix))
 		files := []string{}
 
-		// TODO: create a file lock, defer its deletion, do the same for other
-		// commands which mutate the filesystem state
 		cfg, err := config.Load()
 		if err != nil {
 			log.Fatalln(err)

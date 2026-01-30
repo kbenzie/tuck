@@ -24,6 +24,13 @@ with a project slug or URL.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		removeParams.Package = args[0]
 		log.Infof("remove: %+v\n", removeParams)
+
+		unlock, err := path.AcquireLock()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer unlock()
+
 		pkg, err := state.Get(removeParams.Package)
 		if err != nil {
 			log.Fatalln(err)
