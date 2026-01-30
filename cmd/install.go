@@ -48,66 +48,13 @@ with a project slug or URL.`,
 		log.Debugln(cfg)
 
 		if installParams.Local {
-			if !path.Exists(installParams.Package) {
-				log.Fatalln("local package does not exist:", installParams.Package)
-			}
-			installParams.Package = path.Abs(installParams.Package)
-
-			// check if a similar package has already been installed?
-			pkg, _ := state.Get(installParams.Package)
-			if pkg != nil {
-				log.Fatalf("package already installed: '%s'\n", installParams.Package)
-			}
-
-			// TODO: link instead of move for local packages
-			files = path.Stow(installParams.Package, installParams.Prefix, installParams.DryRun)
+			files, err = installLocal()
 		} else {
-			// TODO: check if a similar package has already been installed?
+			files, err = installRemote(&cfg)
+		}
 
-			release, err := github.GetRelease(installParams.Package, installParams.Release)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			asset, err := github.SelectAsset(release, cfg.Filters)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			archivePath := filepath.Join(path.CacheDir, asset.Name)
-			// TODO: validate checksum
-			err = path.DownloadFile(asset.BrowserDownloadUrl, archivePath)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			err = archive.Extract(archivePath, path.CacheDir)
-			if err != nil {
-				log.Fatalln(err)
-			}
-
-			if err := os.Remove(archivePath); err != nil {
-				log.Fatalln(err)
-			}
-
-			// TODO: detect if ~/.cache/tuck contains a 1 directory or multiple
-			// entries
-			entries, err := os.ReadDir(path.CacheDir)
-			if err != nil {
-				log.Fatalln(err)
-			}
-			dir := ""
-			if len(entries) == 1 && entries[0].IsDir() {
-				dir = filepath.Join(path.CacheDir, entries[0].Name())
-			} else {
-				// assume the archive didn't contain a root directory, this
-				// relies on the cache directory being empty
-				dir = path.CacheDir
-			}
-
-			files = path.Stow(dir, installParams.Prefix, installParams.DryRun)
-
-			// remove the package directory, cache dir may no longer exist
-			os.RemoveAll(dir)
+		if err != nil {
+			log.Fatalln(err)
 		}
 
 		for _, file := range files {
@@ -140,4 +87,72 @@ func init() {
 		"treat package as local path")
 	installCmd.Flags().BoolVarP(&installParams.DryRun, "dry-run", "d", false,
 		"don't actually install anything")
+}
+
+func installLocal() ([]string, error) {
+	if !path.Exists(installParams.Package) {
+		return nil, fmt.Errorf("local package does not exist: %s", installParams.Package)
+	}
+	installParams.Package = path.Abs(installParams.Package)
+
+	// check if a similar package has already been installed?
+	pkg, _ := state.Get(installParams.Package)
+	if pkg != nil {
+		return nil, fmt.Errorf("package already installed: '%s'", installParams.Package)
+	}
+
+	// TODO: link instead of move for local packages
+	files := path.Stow(installParams.Package, installParams.Prefix, installParams.DryRun)
+	return files, nil
+}
+
+func installRemote(cfg *config.Config) ([]string, error) {
+	// TODO: check if a similar package has already been installed?
+
+	release, err := github.GetRelease(installParams.Package, installParams.Release)
+	if err != nil {
+		return nil, err
+	}
+	asset, err := github.SelectAsset(release, cfg.Filters)
+	if err != nil {
+		return nil, err
+	}
+
+	archivePath := filepath.Join(path.CacheDir, asset.Name)
+	// TODO: validate checksum
+	err = path.DownloadFile(asset.BrowserDownloadUrl, archivePath)
+	if err != nil {
+		return nil, err
+	}
+
+	err = archive.Extract(archivePath, path.CacheDir)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.Remove(archivePath); err != nil {
+		return nil, err
+	}
+
+	// TODO: detect if ~/.cache/tuck contains a 1 directory or multiple
+	// entries
+	entries, err := os.ReadDir(path.CacheDir)
+	if err != nil {
+		return nil, err
+	}
+	dir := ""
+	if len(entries) == 1 && entries[0].IsDir() {
+		dir = filepath.Join(path.CacheDir, entries[0].Name())
+	} else {
+		// assume the archive didn't contain a root directory, this
+		// relies on the cache directory being empty
+		dir = path.CacheDir
+	}
+
+	files := path.Stow(dir, installParams.Prefix, installParams.DryRun)
+
+	// remove the package directory, cache dir may no longer exist
+	os.RemoveAll(dir)
+
+	return files, nil
 }
